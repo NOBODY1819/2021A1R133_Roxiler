@@ -19,18 +19,25 @@ router.get('/initialize', async (req, res) => {
 
 // ROute for transaction fetching with pagination
 router.get('/transactions', async (req, res) => {
-    const { search = '', page = 1, perPage = 10 } = req.body;
+    const { month, search = '', page = 1, perPage = 10 } = req.query;
     const pageNumber = parseInt(page, 10);
     const perPageNumber = parseInt(perPage, 10);
+    
+    const selectedMonth = parseInt(month, 10);
+
+        if (isNaN(selectedMonth) || selectedMonth < 1 || selectedMonth > 12) {
+            return res.status(400).json({ message: "Invalid month" });
+        }
     
     const query = {
         $or: [
             { title: new RegExp(search, 'i') },
+            { month: "$dateOfSale" , selectedMonth},
             { description: new RegExp(search, 'i') },
             Number(search) ? {price: Number(search)}: {}
         ]
     };
-
+    
     try {
         const transactions = await ProductTransaction.find(query)
             .skip((pageNumber - 1) * perPageNumber)
@@ -53,7 +60,7 @@ router.get('/transactions', async (req, res) => {
 
 //Api for combined data 
 router.get('/data', async (req, res) => {
-    const { month } = req.body;
+    const { month } = req.query;
 
     if (!month) {
         return res.status(400).json({ message: "Month is required" });
@@ -71,7 +78,7 @@ router.get('/data', async (req, res) => {
             getBarChart(selectedMonth),
             getPieChart(selectedMonth)
         ]);
-
+        
         res.json({
             statistics,
             barChart,
